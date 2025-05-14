@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Otimização de Modelos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f4f7fc;
+            font-family: 'Arial', sans-serif;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin-top: 50px;
+        }
+        
+        .form-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        h3,
+        h2 {
+            color: #0056b3;
+        }
+        
+        .btn-custom {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .btn-custom:hover {
+            background-color: #218838;
+        }
+        
+        .btn-secondary {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <!-- Formulário para otimização -->
+        <div class="form-container">
+            <h3>Otimização de Modelos com Optuna</h3>
+            <p>Optuna é uma ferramenta de otimização automática de hiperparâmetros para algoritmos de machine learning. Ela ajuda a encontrar os melhores parâmetros para o seu modelo, o que pode melhorar significativamente sua performance. Ao invés de testar
+                manualmente várias combinações de parâmetros, o Optuna faz isso de forma eficiente, economizando tempo e recursos. Neste formulário, você pode selecionar o modelo de machine learning e otimizar os parâmetros usando o Optuna.</p>
+
+            <form action="{{ url_for('otimizar_modelo') }}" method="POST">
+                <div class="mb-3">
+                    <label for="modelo_nome" class="form-label">Escolha o modelo:</label>
+                    <select name="modelo_nome" id="modelo_nome" class="form-select">
+                    <option value="HistGradientBoosting">HistGradientBoosting</option>
+                    <option value="RandomForest">RandomForest</option>
+                    <option value="GradientBoosting">GradientBoosting</option>
+                    <option value="LogisticRegression">LogisticRegression</option>
+                    <option value="XGBClassifier">XGBClassifier</option>
+                    <option value="LGBMClassifier">LGBMClassifier</option>
+                </select>
+                </div>
+                <button type="submit" class="btn btn-custom">🔍 Otimizar Modelo</button>
+            </form>
+        </div>
+
+        <!-- Resultados da otimização -->
+        <div class="form-container mt-4">
+            <!-- <h2>Melhores Parâmetros Encontrados</h2> -->
+            <p>{{ melhores_parametros }}</p>
+
+            <!-- Botão para voltar -->
+            <a href="{{ url_for('home') }}" class="btn btn-secondary">Voltar à página inicial</a>
+        </div>
+    </div>
+
+    <!-- Script Bootstrap -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+
+</body>
+
+</html>
