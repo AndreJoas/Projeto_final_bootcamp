@@ -2,8 +2,31 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
-# ========== Funções de pré-processamento ========== #
 
+
+'''''
+                                 Pipeline completo de pré-processamento de dados para treino e teste
+                                 Este conjunto de funções realiza as seguintes etapas principais:
+
+1. Tratamento de valores inválidos (negativos) em colunas numéricas, substituindo-os pela mediana da coluna.
+2. Identificação e tratamento de outliers usando o método do IQR (Intervalo Interquartil),
+     substituindo outliers por NaN e depois preenchendo com a mediana do conjunto de treino.
+3. Padronização de categorias textuais para valores consistentes como "Sim" e "Não",
+    facilitando a manipulação e interpretação das variáveis categóricas.
+4. Conversão de valores booleanos e strings relacionadas (ex: 'true', 'false') para "sim" e "não",
+    garantindo uniformidade nos dados categóricos.
+5. Aplicação das transformações em ambos os datasets de treino e teste,
+    para manter coerência entre os conjuntos.
+6. Tratamento específico para as colunas 'tipo_do_aço_A300' e 'tipo_do_aço_A400',
+    aplicando regras lógicas para preencher valores faltantes em 'tipo_do_aço_A400' baseado em 'tipo_do_aço_A300'.
+7. Normalização dos dados numéricos usando MinMaxScaler,
+    escalando os valores para o intervalo [0,1], o que ajuda a evitar vieses em modelos sensíveis à escala.
+8. Codificação das colunas categóricas (texto) em valores numéricos utilizando LabelEncoder,
+   facilitando a entrada dos dados em modelos de machine learning.
+
+                                        O pipeline garante que as transformações sejam consistentes entre treino e teste,
+                                        evitando vazamento de dados e melhorando a qualidade do modelo final.
+'''
 def tratar_valores_invalidos(df, coluna):
     df[coluna] = df[coluna].apply(lambda x: np.nan if x < 0 else x)
     mediana = df[coluna].median()

@@ -3,22 +3,27 @@ import plotly.graph_objects as go
 import numpy as np
 import os
 
+# Esta função reúne os dados de previsão de diferentes modelos salvos em arquivos CSV,
+# calcula estatísticas como média, desvio padrão e entropia para cada tipo de falha,
+# gera gráficos de distribuição usando Plotly e monta uma tabela HTML com as estatísticas.
+# Também inclui um botão para download da tabela em formato CSV, facilitando a análise e comparação dos modelos.
+
+
 def gerar_dados_estatisticos():
-    # Usar o padrão para buscar todos os arquivos CSV com o prefixo 'previsoes_'
+
     arquivos_modelos = {f.split('_')[1].split('.')[0]: f 
                         for f in os.listdir() if f.startswith('previsoes_') and f.endswith('.csv')}
     
     variaveis_alvo = ['falha_1', 'falha_2', 'falha_3', 'falha_4', 'falha_5', 'falha_6', 'falha_outros']
     df_resultado = pd.DataFrame()
 
-    # Ler os dados e adicionar ao DataFrame
+   
     for modelo_nome, arquivo in arquivos_modelos.items():
         df = pd.read_csv(arquivo)
         for falha in variaveis_alvo:
             coluna_nome = f'{falha}_{modelo_nome}'
             df_resultado[coluna_nome] = df[falha]
 
-    # 🔽 Gráficos dentro de um único scroll
     graficos_html = '<div style="max-height: 600px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;">'
     for falha in variaveis_alvo:
         fig = go.Figure()
@@ -37,7 +42,7 @@ def gerar_dados_estatisticos():
             barmode='overlay',
             height=400
         )
-        # Inclui Plotly apenas no primeiro gráfico
+       
         graficos_html += fig.to_html(full_html=False, include_plotlyjs='cdn')
     graficos_html += '</div>'
 
@@ -64,7 +69,6 @@ def gerar_dados_estatisticos():
     # Converter para CSV
     csv_data = df_estatisticas.to_csv(index=False)
 
-    # Tabela em scroll
     tabela_html = df_estatisticas.to_html(index=False, classes="table table-striped custom-table", border=0)
     tabela_scroll = f'''
         <div style="max-height: 300px; overflow:auto; margin-top: 20px; border: 1px solid #ccc; padding: 10px;">

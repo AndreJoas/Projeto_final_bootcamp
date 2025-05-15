@@ -23,6 +23,17 @@ from flask import send_from_directory
 app = Flask(__name__)
 app.secret_key = 'minha_chave_secreta_123' 
 
+
+"""
+    Função para treinamento e salvamento de múltiplos modelos de machine learning.
+    - Lê bases de treino e teste de arquivos CSV.
+    - Define as variáveis alvo (falhas) e separa features (X) e alvos (y).
+    - Inicializa vários modelos com hiperparâmetros pré-definidos.
+    - Para cada modelo, treina individualmente para cada variável alvo.
+    - Gera previsões de probabilidade para os dados de teste.
+    - Salva as previsões em arquivos CSV nomeados conforme o modelo.
+    Uso: Treinar todos os modelos com parâmetros fixos e salvar resultados.
+"""
 def treinar_e_salvar_modelos():
     dados_treino = pd.read_csv('C:/Users/andreJoas/Desktop/basetratada.csv')
     dados_teste = pd.read_csv('C:/Users/andreJoas/Desktop/basetest.csv')
@@ -99,6 +110,15 @@ gamma = 0.12021779769124034,
         df_modelo_resultado.to_csv(nome_arquivo, index=False)
         print(f"✅ Resultados salvos em: {nome_arquivo}")
 
+
+"""
+    Rota '/detalhes': Exibe uma página HTML contendo tabelas com as previsões dos modelos de machine learning.
+    - Lê arquivos CSV de previsões que começam com 'previsoes_'.
+    - Calcula a média percentual das previsões para cada classe/falha.
+    - Formata e exibe os dados em tabelas HTML estilizadas.
+    - Fornece links para download dos arquivos CSV correspondentes.
+    Retorna: Página renderizada com as tabelas e estatísticas de previsão dos modelos.
+"""
 @app.route('/detalhes')
 def detalhes():
     arquivos_csv = [arq for arq in os.listdir() if arq.startswith('previsoes_') and arq.endswith('.csv')]
@@ -129,17 +149,36 @@ def detalhes():
 
     return render_template("detalhes.html", tabelas_html=tabelas_html)
 
-
+"""
+    Rota '/download_csv/<filename>': Permite o download de arquivos CSV gerados pelo sistema.
+    - Recebe o nome do arquivo como parâmetro na URL.
+    - Usa 'send_from_directory' para enviar o arquivo da pasta atual como anexo para o cliente.
+    Retorna: Resposta HTTP para download do arquivo CSV solicitado.
+"""
 @app.route('/download_csv/<path:filename>')
 def download_csv(filename):
     return send_from_directory(directory='.', path=filename, as_attachment=True)
 
-
+"""
+    Rota raiz '/': Página inicial da aplicação.
+    - Chama a função 'gerar_dados_estatisticos' para obter HTML dos gráficos e tabelas de estatísticas.
+    - Renderiza o template 'index.html' passando os gráficos e tabela para visualização.
+    Retorna: Página inicial com visualização dos dados estatísticos.
+"""
 @app.route('/')
 def home():
     graficos_html, tabela_html = gerar_dados_estatisticos()
     return render_template("index.html", graficos_html=graficos_html, tabela_html=tabela_html)
 
+
+"""
+    Função para executar o pipeline completo de pré-processamento dos dados.
+    - Lê os datasets de treino e teste originais.
+    - Define as colunas categóricas a serem tratadas.
+    - Aplica transformações como normalização e tratamento de variáveis categóricas.
+    - Exporta as bases tratadas para arquivos CSV para uso posterior.
+    Uso: Preparar os dados para treino e teste de modelos.
+"""
 def executar_pipeline():
     from processamento.pipeline import pipeline_completo, normalizar_dados, tratar_categoricas
 
@@ -164,7 +203,14 @@ def executar_pipeline():
     df_test_final.to_csv('C:/Users/andreJoas/Desktop/basetest.csv', index=False)
     print("✅ Bases tratadas e exportadas.")
 
-# ---------
+
+"""
+    Função similar a 'treinar_e_salvar_modelos' mas aceita parâmetros dinâmicos para os modelos.
+    - Recebe um dicionário 'params' com parâmetros para inicializar cada modelo.
+    - Treina os modelos para cada variável alvo e gera previsões.
+    - Salva os resultados em arquivos CSV.
+    Uso: Permite treino com hiperparâmetros personalizados (ex: otimizados via Optuna).
+"""
 def treinar_e_salvar_modelos_com_parametros(params):
     dados_treino = pd.read_csv('C:/Users/andreJoas/Desktop/basetratada.csv')
     dados_teste = pd.read_csv('C:/Users/andreJoas/Desktop/basetest.csv')
@@ -199,13 +245,26 @@ def treinar_e_salvar_modelos_com_parametros(params):
         print(f"✅ Resultados salvos em: {nome_arquivo}")
 
 
-
+"""
+    Rota '/treinar_modelo_form' (GET): Exibe o formulário HTML para otimização e treinamento de modelos.
+    - Renderiza a página 'otimizar_modelo.html', onde o usuário pode inserir parâmetros para treino.
+    Retorna: Página com formulário para otimizar/trenar modelos.
+"""
 @app.route('/treinar_modelo_form', methods=['GET'])
 def treinar_modelo_form():
     return render_template('otimizar_modelo.html')
 
 
 
+"""
+    Função objetivo para otimização de hiperparâmetros via Optuna.
+    - Recebe um 'trial' (experimento), nome do modelo e dados de entrada X e y.
+    - Define um espaço de busca de hiperparâmetros específico para cada modelo.
+    - Inicializa o modelo com os parâmetros sugeridos pelo 'trial'.
+    - Realiza validação cruzada estratificada para avaliação da métrica média (ex: ROC AUC,F1).
+    - Retorna a métrica de avaliação para guiar a otimização.
+    Uso: Usada internamente para encontrar os melhores hiperparâmetros para cada modelo.
+"""
 def objective(trial, modelo_nome, X, y_multioutput):
     if modelo_nome == 'HistGradientBoosting':
         params = {
@@ -281,59 +340,72 @@ def objective(trial, modelo_nome, X, y_multioutput):
     return np.mean(f1s)
 
 
-# Ensure to include this function
+'''
+-Função que executa a otimização de hiperparâmetros do modelo usando Optuna
+-Recebe o nome do modelo, os dados de entrada (X) e as variáveis alvo (y_multioutput)
+-Cria um estudo Optuna para maximizar a métrica definida na função objective
+-Realiza a otimização por até 2 tentativas ou 1800 segundos (30 minutos)
+-Retorna os melhores parâmetros encontrados pelo estudo'''
+
 def optimize_model(modelo_nome, X, y_multioutput):
     study = optuna.create_study(direction='maximize')
     study.optimize(lambda trial: objective(trial, modelo_nome, X, y_multioutput), n_trials=2, timeout=1800)
     return study.best_params
 
-# Rota para otimizar o modelo
+
+'''Rota para otimizar hiperparâmetros do modelo usando Optuna
+ Recebe via POST o nome do modelo, executa a otimização, e exibe os melhores parâmetros encontrados'''
+
+
 @app.route('/otimizar_modelo', methods=['GET', 'POST'])
 def otimizar_modelo():
     try:
-        # Carregar os dados
+        
         df_treino = pd.read_csv('basetratada/basetratada.csv')
         variaveis_alvo = ['falha_1', 'falha_2', 'falha_3', 'falha_4', 'falha_5', 'falha_6', 'falha_outros']
         X = df_treino.drop(columns=variaveis_alvo)
         y_multioutput = df_treino[variaveis_alvo]
 
         if request.method == 'POST':
-            modelo_nome = request.form.get('modelo_nome')  # Pega o nome do modelo do formulário
-            print(f"Modelo selecionado: {modelo_nome}")  # Verificar se o valor do modelo está sendo capturado
+            modelo_nome = request.form.get('modelo_nome')  
+            print(f"Modelo selecionado: {modelo_nome}")  
             
-            # Rodar a otimização com os parâmetros do Optuna
+       
             melhores_parametros = optimize_model(modelo_nome, X, y_multioutput)
-            print(f"Melhores parâmetros: {melhores_parametros}")  # Verificar se a função está retornando os parâmetros
+            print(f"Melhores parâmetros: {melhores_parametros}")  
             
-            # Exibir os melhores parâmetros no HTML
+            
             flash(f"Melhores parâmetros encontrados para {modelo_nome}: {melhores_parametros}", "success")
             
-            # Redireciona para a página de resultados, passando os parâmetros
+           
             print("Otimização concluída, redirecionando para os resultados.")
             return render_template('otimizacao_resultados.html', 
                                    melhores_parametros=melhores_parametros, 
-                                   modelo_nome=modelo_nome)  # Passando 'modelo_nome' para o template
+                                   modelo_nome=modelo_nome)  
         
         return render_template('otimizar_modelo.html')
     
     except Exception as e:
-        print(f"Erro: {e}")  # Verificar qualquer erro ocorrido
+        print(f"Erro: {e}")  
         flash(f"Erro ao otimizar o modelo: {e}", "danger")
-        return redirect(url_for('home'))  # Caso haja erro, redireciona para a home
+        return redirect(url_for('home')) 
 
+
+''' Rota para baixar os melhores parâmetros otimizados em formato JSON
+ Recebe os parâmetros via query string, valida e permite download do arquivo JSON'''
 @app.route('/baixar_parametros/<formato>')
 def baixar_parametros(formato):
-    # Recuperar os melhores parâmetros da sessão ou de uma variável global
+    
     melhores_parametros = request.args.get('melhores_parametros', None)
-    print(f"Melhores parâmetros recebidos: {melhores_parametros}")  # Verificar se os parâmetros estão sendo passados corretamente
+    print(f"Melhores parâmetros recebidos: {melhores_parametros}")  
     
     if not melhores_parametros:
         flash("Não foi possível encontrar os parâmetros para download", "danger")
         return redirect(url_for('otimizar_modelo'))
 
-    melhores_parametros = json.loads(melhores_parametros)  # Garantir que seja um dicionário
+    melhores_parametros = json.loads(melhores_parametros)  
 
-    # Caso o formato seja JSON
+   
     if formato == 'json':
         return Response(
             json.dumps(melhores_parametros, indent=4),
@@ -341,18 +413,25 @@ def baixar_parametros(formato):
             headers={"Content-Disposition": "attachment;filename=parametros.json"}
         )
     
-    # Se o formato não for válido, redireciona de volta
+   
     return redirect(url_for('otimizacao_de_resultados'))
 
+
+
+
+# Rota para exibir a página de resultados da otimização
 @app.route('/otimizacao_de_resultados')
 def otimizacao_de_resultados():
-    # Renderiza a página de resultados da otimização
+    
     return render_template('otimizacao_resultados.html')
 
+
+''' Rota para treinar o modelo com parâmetros informados via formulário POST
+ Recebe os parâmetros, chama função de treino e salva modelo treinado'''
 @app.route('/treinar_modelo', methods=['POST'])
 def treinar_modelo_com_parametros():
     try:
-        # Pegando os parâmetros do formulário
+       
         params = {
             'learning_rate': float(request.form.get('learning_rate')),
             'max_iter': int(request.form.get('max_iter')),
@@ -361,7 +440,7 @@ def treinar_modelo_com_parametros():
             'n_estimators': int(request.form.get('n_estimators'))
         }
         
-        # Passando os parâmetros para a função de treinamento
+       
         treinar_e_salvar_modelos_com_parametros(params)
         
         flash("Modelo treinado com sucesso!", "success")
@@ -372,6 +451,8 @@ def treinar_modelo_com_parametros():
         return redirect(url_for('home'))
 
 
+''' Bloco principal para inicializar o servidor Flask
+Verifica se arquivos de previsão existem, executa pipeline e treinamento se necessário, e então inicia o servidor'''
 if __name__ == '__main__':
     arquivos_previsoes = [f for f in os.listdir() if f.startswith('previsoes_') and f.endswith('.csv')]
 
